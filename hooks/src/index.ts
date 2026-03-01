@@ -32,7 +32,7 @@ app.post("/hooks/catch/:userId/:zapId", async (req,res) =>{
   //push it on to a queue kafka or redis
 })
 
-app.listen(3000, () =>{
+app.listen(3002, () =>{
   console.log("server started at 3000");
 })
 
