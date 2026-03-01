@@ -5,6 +5,7 @@ import { ZapCreateSchema } from "../types/index.js";
 const router = Router();
 
 router.post("/", authMiddleware, async (req, res) => {
+  // console.log("you are here");
   // @ts-ignore
   const id: string = req.id;
   const body = req.body;
