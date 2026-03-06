@@ -10,6 +10,10 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/zap", zapRouter);
 app.use("/api/v1/trigger", triggerRouter);
