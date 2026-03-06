@@ -66,7 +66,7 @@ router.post("/signin", async (req, res) => {
   
   if (!user) {
     return res.status(403).json({
-      message: "Sorry credentials are incorrect"
+      message: "Sorry credentials are incorrect."
     })
   }
 
