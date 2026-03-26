@@ -27,6 +27,12 @@ Currently supports email sending. The architecture is built to plug in more acti
 
 ---
 
+## System Design
+
+![Zap System Design](./assets/zap-archi.png)
+
+---
+
 ## Stack
 
 - **Backend** — Node.js, Express, TypeScript
