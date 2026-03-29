@@ -35,4 +35,3 @@ app.post("/hooks/catch/:userId/:zapId", async (req,res) =>{
 app.listen(3002, () =>{
   console.log("server started at 3000");
 })
-

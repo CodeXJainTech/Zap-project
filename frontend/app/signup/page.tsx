@@ -60,6 +60,7 @@ export default function () {
             <div className="pt-4">
               <PrimaryButton
                 onClick={async () => {
+                  console.log("Signing up with", { BACKEND_URL});
                   const res = await axios.post(
                     `${BACKEND_URL}/api/v1/user/signup`,
                     {

@@ -12,7 +12,11 @@ export const DarkButton = ({
   return (
     <div
       onClick={onClick}
-      className={`flex flex-col justify-center px-8 py-2 cursor-pointer hover:shadow-md bg-purple-800 text-white rounded text-center`}
+      className={`
+        inline-flex items-center justify-center cursor-pointer font-semibold
+        bg-gray-900 text-white hover:bg-gray-700 rounded-lg transition-colors
+        ${size === "small" ? "px-4 py-2 text-sm" : "px-6 py-3 text-base"}
+      `}
     >
       {children}
     </div>

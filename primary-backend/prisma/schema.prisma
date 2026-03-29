@@ -25,6 +25,7 @@ model Zap {
   id String @id @default(uuid())
   triggerId String
   userId Int
+  secret String @default("")
   zapRuns ZapRun[]
   trigger Trigger?
   actions Action[]

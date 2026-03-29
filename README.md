@@ -2,7 +2,9 @@
 
 A Zapier-like automation platform where users can create workflows with triggers and actions. When a trigger fires (e.g. a webhook), it runs a chain of actions (e.g. send an email) automatically.
 
-Currently supports email sending. The architecture is built to plug in more actions easily.
+Currently supports:
+Triggers: Webhook, Github, scheduler
+Acitons: Email, Http, 
 
 ---
 

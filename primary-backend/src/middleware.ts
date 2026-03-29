@@ -7,8 +7,8 @@ export function authMiddleware(
   res: Response,
   next: NextFunction,
 ) {
-  const token = req.headers.authorization as unknown as string;
-
+  const bearer = req.headers.authorization as string;
+  const token = bearer.split(" ")[1] as string;
   try {
     const payload = jwt.verify(token, JWT_PASSWORD);
     // @ts-ignore

@@ -10,7 +10,7 @@ const router = Router();
 router.post("/signup", async (req, res) => {
   const body = req.body;
   const parsedData = SignupSchema.safeParse(body);
-
+  console.log("Received signup request with body", body, "and parsedData", parsedData);
   if (!parsedData.success) {
     console.log(parsedData.error);
     return res.status(411).json({
@@ -23,7 +23,7 @@ router.post("/signup", async (req, res) => {
       email: parsedData.data.username
     }
   });
-
+  console.log("User exists?", userExists);
   if (userExists) {
     return res.status(403).json({
       message: "User already exists"

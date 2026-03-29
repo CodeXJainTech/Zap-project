@@ -1,45 +1,53 @@
 import { PrismaClient } from "@prisma/client";
-import { Kafka } from "kafkajs";
-
-const TOPIC_NAME = "zap-events";
+import { Queue } from "bullmq";
 
 const client = new PrismaClient();
 
-const kafka = new Kafka({
-  clientId: "outbox-processor",
-  brokers: [process.env.KAFKA_BROKER ?? "localhost:9092"],
+const zapQueue = new Queue("zap-events", {
+  connection: {
+    host: process.env.REDIS_HOST ?? "localhost",
+    port: parseInt(process.env.REDIS_PORT ?? "6379"),
+    password: process.env.REDIS_PASSWORD ?? undefined,
+  },
 });
 
 async function main() {
-  const producer = kafka.producer();
-  await producer.connect();
+  console.log("Processor started — polling outbox every 3s");
 
-  while (1) {
+  while (true) {
     const pendingRows = await client.zapRunOutbox.findMany({
       where: {},
       take: 10,
     });
-    console.log(pendingRows);
 
-    producer.send({
-      topic: TOPIC_NAME,
-      messages: pendingRows.map((r) => {
-        return {
-          value: JSON.stringify({ zapRunId: r.zapRunId, stage: 0 }),
-        };
-      }),
-    });
+    if (pendingRows.length > 0) {
+      // Enqueue ALL jobs before deleting from outbox — prevents data loss
+      await Promise.all(
+        pendingRows.map((r) =>
+          zapQueue.add(
+            "zap-run",
+            { zapRunId: r.zapRunId, stage: 0 },
+            {
+              jobId: r.zapRunId, // idempotent — safe to re-add
+              attempts: 3,
+              backoff: { type: "exponential", delay: 2000 },
+            }
+          )
+        )
+      );
 
-    await client.zapRunOutbox.deleteMany({
-      where: {
-        id: {
-          in: pendingRows.map((x) => x.id),
-        },
-      },
-    });
+      await client.zapRunOutbox.deleteMany({
+        where: { id: { in: pendingRows.map((x) => x.id) } },
+      });
+
+      console.log(`Enqueued ${pendingRows.length} jobs`);
+    }
 
     await new Promise((r) => setTimeout(r, 3000));
   }
 }
 
-main();
+main().catch((err) => {
+  console.error("Processor crashed:", err);
+  process.exit(1);
+});

@@ -1,24 +1,32 @@
 import nodemailer from "nodemailer";
-import dotenv from "dotenv";
-dotenv.config();
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+export async function sendEmail(
+  to: string,
+  body: string,
+  fromEmail?: string,
+  appPassword?: string
+) {
+  // Use per-action credentials if provided, else fall back to env vars
+  const user = fromEmail || process.env.EMAIL_USER;
+  const pass = appPassword || process.env.EMAIL_PASS;
 
-export async function sendEmail(to: string, body: string) {
+  if (!user || !pass) {
+    console.error("No email credentials available — skipping send");
+    return false;
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user, pass },
+  });
+
   try {
     const info = await transporter.sendMail({
-      from: `"Zap System" <${process.env.EMAIL_USER}>`,
-      to: to,
+      from: `"Zap" <${user}>`,
+      to,
       subject: "New Zap Notification",
       text: body,
     });
-
     console.log("Email sent:", info.messageId);
     return true;
   } catch (error) {
