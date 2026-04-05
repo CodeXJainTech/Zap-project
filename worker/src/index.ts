@@ -60,6 +60,16 @@ async function executeStage(zapRunId: string, stage: number) {
     }
 
     console.log(`Sending email to ${to}`);
+    await prismaClient.action.update({
+      where: { id: currentAction.id },
+      data: {
+        metadata: {
+          ...meta,
+          email: to,
+          body: body,
+        },
+      },
+    });
     const sent = await sendEmail(to, body, fromEmail, appPassword);
     if (!sent) throw new Error(`Email to ${to} failed`);
   }
