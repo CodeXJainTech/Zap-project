@@ -37,18 +37,23 @@ async function syncScheduledZaps() {
   });
 
   console.log(`Found ${scheduledZaps.length} scheduled zaps`);
-
+  //bug found that the zap does not contain a field of trigger.metadata.
   for (const zap of scheduledZaps) {
-    const meta = zap.trigger?.metadata as Record<string, any>;
+    const meta = zap.trigger?.metadata as any;
     const interval = meta?.interval ?? "every-hour";
-    const cron = INTERVAL_TO_CRON[interval] ?? INTERVAL_TO_CRON["every-hour"] ?? "0 * * * *";
+    const cron = INTERVAL_TO_CRON[interval] ?? "0 * * * *";
 
     const jobId = `schedule-${zap.id}`;
-
+    // console.log("RAW META:", zap.trigger?.metadata);
+    // console.log("INTERVAL:", interval);
+    // console.log("CRON:", cron);
     // BullMQ repeatable job — fires on cron, creates a ZapRun each time
+
     await zapQueue.add(
       "scheduled-zap",
-      { zapId: zap.id },
+      { zapId: zap.id,
+        
+      },
       {
         jobId,
         repeat: { pattern: cron },

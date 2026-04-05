@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { BACKEND_URL } from "@/app/config";
 import { Input } from "@/components/Input";
 
-type AvailableItem = { id: string; name: string; image: string };
+type AvailableItem = { id: string; name: string; image: string; metadata?: any };
 
 const ACTIONS_WITH_CONFIG = ["email", "slack-action", "http-action"];
 const TRIGGERS_WITH_CONFIG = ["schedule"];
@@ -75,7 +75,7 @@ export default function CreateZapPage() {
         `${BACKEND_URL}/api/v1/zap`,
         {
           availableTriggerId: selectedTrigger!.id,
-          triggerMetadata: {},
+          triggerMetadata: selectedTrigger!.metadata ?? {},
           actions: selectedActions.map((a) => ({
             availableActionId: a.availableActionId,
             actionMetadata: a.metadata,
@@ -176,7 +176,7 @@ export default function CreateZapPage() {
               return;
             }
             if (selectedModalIndex === 1) {
-              setSelectedTrigger({ id: props.id, name: props.name, image: props.image });
+              setSelectedTrigger({ id: props.id, name: props.name, image: props.image, metadata: props.metadata });
             } else {
               setSelectedActions((a) => {
                 const next = [...a];
