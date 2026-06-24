@@ -8,7 +8,10 @@ import { actionRouter } from "./router/action.js";
 const app = express();
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL ?? "http://localhost:3001",
+  credentials: true,
+}));
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });

@@ -7,7 +7,10 @@ export function authMiddleware(
   res: Response,
   next: NextFunction,
 ) {
-  const bearer = req.headers.authorization as string;
+  const bearer = req.headers.authorization;
+  if (!bearer || !bearer.startsWith("Bearer ")) {
+    return res.status(403).json({ message: "You are not logged in" });
+  }
   const token = bearer.split(" ")[1] as string;
   try {
     const payload = jwt.verify(token, JWT_PASSWORD);
