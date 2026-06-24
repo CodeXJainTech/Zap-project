@@ -13,13 +13,12 @@ const zapQueue = new Queue("zap-events", { connection: redisConnection });
 
 // Interval label → cron expression
 const INTERVAL_TO_CRON: Record<string, string> = {
-  "every-minute":  "* * * * *",
-  "every-5min":    "*/5 * * * *",
-  "every-15min":   "*/15 * * * *",
-  "every-hour":    "0 * * * *",
-  "every-6hours":  "0 */6 * * *",
-  "every-day":     "0 9 * * *",   // 9am daily
-  "every-week":    "0 9 * * 1",   // 9am every Monday
+  "every-5min": "*/5 * * * *",
+  "every-15min": "*/15 * * * *",
+  "every-hour": "0 * * * *",
+  "every-6hours": "0 */6 * * *",
+  "every-day": "0 9 * * *",
+  "every-week": "0 9 * * 1",
 };
 
 async function syncScheduledZaps() {
@@ -37,28 +36,23 @@ async function syncScheduledZaps() {
   });
 
   console.log(`Found ${scheduledZaps.length} scheduled zaps`);
-  //bug found that the zap does not contain a field of trigger.metadata.
+
   for (const zap of scheduledZaps) {
-    const meta = zap.trigger?.metadata as any;
+    const meta = zap.trigger?.metadata as Record<string, any>;
     const interval = meta?.interval ?? "every-hour";
-    const cron = INTERVAL_TO_CRON[interval] ?? "0 * * * *";
+    const cron: string = INTERVAL_TO_CRON[interval] ?? "0 * * * *"; // every hour
 
     const jobId = `schedule-${zap.id}`;
-    // console.log("RAW META:", zap.trigger?.metadata);
-    // console.log("INTERVAL:", interval);
-    // console.log("CRON:", cron);
-    // BullMQ repeatable job — fires on cron, creates a ZapRun each time
 
+    // BullMQ repeatable job — fires on cron, creates a ZapRun each time
     await zapQueue.add(
       "scheduled-zap",
-      { zapId: zap.id,
-        
-      },
+      { zapId: zap.id },
       {
         jobId,
         repeat: { pattern: cron },
         removeOnComplete: true,
-      }
+      },
     );
 
     console.log(`Scheduled zap ${zap.id} with cron: ${cron}`);
