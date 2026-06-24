@@ -1,6 +1,6 @@
 # Zap
 
-A Zapier-like automation platform where users can create workflows with triggers and actions. When a trigger fires (e.g. a webhook), it runs a chain of actions (e.g. send an email) automatically.
+A automation platform where users can create workflows with triggers and actions. When a trigger fires (e.g. a webhook), it runs a chain of actions (e.g. send an email) automatically.
 
 Currently supports:
 Triggers: Webhook, Github, scheduler
