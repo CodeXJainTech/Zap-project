@@ -1,9 +1,6 @@
 "use client";
 import { useState } from "react";
 
-// Animated SVG demo — shows a live automation flow instead of a video
-// No external URLs, no Zapier branding, works everywhere
-
 const STEPS = [
   { icon: "🌐", label: "Webhook received", color: "#f59e0b", delay: 0 },
   { icon: "⚙️", label: "Processing trigger", color: "#6366f1", delay: 600 },

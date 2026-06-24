@@ -8,11 +8,12 @@ import { useState } from "react";
 import { BACKEND_URL } from "../config";
 import { useRouter } from "next/navigation";
 
-export default function () {
+export default function SignupPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   return (
     <div>
@@ -60,21 +61,41 @@ export default function () {
             <div className="pt-4">
               <PrimaryButton
                 onClick={async () => {
-                  console.log("Signing up with", { BACKEND_URL});
-                  const res = await axios.post(
-                    `${BACKEND_URL}/api/v1/user/signup`,
-                    {
-                      username: email,
-                      password,
-                      name,
-                    },
-                  );
-                  router.push("/login");
+                  try {
+                    setError("");
+                    if (name.trim().length < 3) {
+                      setError("Name must be at least 3 characters");
+                      return;
+                    }
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                      setError("Invalid email address");
+                      return;
+                    }
+                    if (password.length < 6) {
+                      setError("Password must be at least 6 characters");
+                      return;
+                    }
+                    const res = await axios.post(
+                      `${BACKEND_URL}/api/v1/user/signup`,
+                      {
+                        username: email,
+                        password,
+                        name,
+                      },
+                    );
+                    if (res.status === 200 || res.status === 201) {
+                      router.push("/login");
+                    }
+                  } catch (err: any) {
+                    setError(err.response?.data?.message || "An unexpected error occurred");
+                  }
                 }}
                 size="big"
               >
                 Get started free
               </PrimaryButton>
+              {error && <div className="text-red-500 pt-4 text-sm">{error}</div>}
             </div>
           </div>
         </div>

@@ -15,9 +15,8 @@ export const Hero = () => {
       </div>
       <div className="flex justify-center pt-2">
         <div className="text-xl font-bold text-center pt-8 max-w-2xl">
-          AI gives you automation superpowers, and Zap puts them to work.
-          Pairing AI and Zap helps you turn ideas into workflows and bots
-          that work for you.
+          Connect your apps and automate workflows in minutes. Build powerful
+          integrations without writing a single line of code.
         </div>
       </div>
 
@@ -42,7 +41,7 @@ export const Hero = () => {
       <div className="flex justify-center pt-4">
         <Feature title={"Free Forever"} subtitle={"for core features"} />
         <Feature title={"More apps"} subtitle={"than any other platforms"} />
-        <Feature title={"Cutting Edge"} subtitle={"AI Features"} />
+        <Feature title={"Cutting Edge"} subtitle={"AIFeatures"} />
       </div>
     </div>
   );

@@ -8,9 +8,10 @@ import { useState } from "react";
 import { BACKEND_URL } from "../config";
 import { useRouter } from "next/navigation";
 
-export default function () {
+export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const router = useRouter();
 
   return (
@@ -19,9 +20,7 @@ export default function () {
       <div className="flex justify-center">
         <div className="flex pt-8 max-w-4xl">
           <div className="flex-1 pt-20 px-4">
-            <div className="font-semibold text-3xl pb-4">
-              Join and try it.
-            </div>
+            <div className="font-semibold text-3xl pb-4">Join and try it.</div>
             <div className="pb-6 pt-4">
               <CheckFeature label={"Easy setup, no coding required"} />
             </div>
@@ -50,21 +49,36 @@ export default function () {
             <div className="pt-4">
               <PrimaryButton
                 onClick={async () => {
-                  // console.log(`${BACKEND_URL}/api/v1/user/signin`);
-                  const res = await axios.post(
-                    `${BACKEND_URL}/api/v1/user/signin`,
-                    {
-                      username: email,
-                      password,
-                    },
-                  );
-                  localStorage.setItem("token", res.data.token);
-                  router.push("/dashboard");
+                  try {
+                    setError("");
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                      setError("Invalid email address");
+                      return;
+                    }
+                    if (password.length < 6) {
+                      setError("Password must be at least 6 characters");
+                      return;
+                    }
+                    // console.log(`${BACKEND_URL}/api/v1/user/signin`);
+                    const res = await axios.post(
+                      `${BACKEND_URL}/api/v1/user/signin`,
+                      {
+                        username: email,
+                        password,
+                      },
+                    );
+                    localStorage.setItem("token", res.data.token);
+                    router.push("/dashboard");
+                  } catch (err: any) {
+                    setError(err.response?.data?.message || "An unexpected error occurred");
+                  }
                 }}
                 size="big"
               >
                 Login
               </PrimaryButton>
+              {error && <div className="text-red-500 pt-4 text-sm">{error}</div>}
             </div>
           </div>
         </div>
