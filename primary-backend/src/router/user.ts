@@ -4,13 +4,14 @@ import { SigninSchema, SignupSchema } from "../types/index.js";
 import { prismaClient } from "../db/index.js"
 import { JWT_PASSWORD } from "../config.js";
 import jwt from "jsonwebtoken"
+import bcrypt from "bcryptjs"
 
 const router = Router();
 
 router.post("/signup", async (req, res) => {
   const body = req.body;
   const parsedData = SignupSchema.safeParse(body);
-  console.log("Received signup request with body", body, "and parsedData", parsedData);
+
   if (!parsedData.success) {
     console.log(parsedData.error);
     return res.status(411).json({
@@ -23,18 +24,19 @@ router.post("/signup", async (req, res) => {
       email: parsedData.data.username
     }
   });
-  console.log("User exists?", userExists);
+
   if (userExists) {
     return res.status(403).json({
       message: "User already exists"
     })
   }
 
+  const hashedPassword = await bcrypt.hash(parsedData.data.password, 10);
+
   await prismaClient.user.create({
     data: {
       email: parsedData.data.username,
-      // TODO: Dont store passwords in plaintext, hash it
-      password: parsedData.data.password,
+      password: hashedPassword,
       name: parsedData.data.name
     }
   })
@@ -60,11 +62,12 @@ router.post("/signin", async (req, res) => {
   const user = await prismaClient.user.findFirst({
     where: {
       email: parsedData.data.username,
-      password: parsedData.data.password
     }
   });
-  
-  if (!user) {
+
+  const passwordMatch = user && await bcrypt.compare(parsedData.data.password, user.password);
+
+  if (!passwordMatch) {
     return res.status(403).json({
       message: "Sorry credentials are incorrect."
     })
@@ -73,7 +76,7 @@ router.post("/signin", async (req, res) => {
   // sign the jwt
   const token = jwt.sign({
     id: user.id
-  }, JWT_PASSWORD);
+  }, JWT_PASSWORD, { expiresIn: "7d" });
 
   res.json({
     token: token,

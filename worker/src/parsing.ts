@@ -3,7 +3,11 @@ export function parse(
   values: any,
   startDelimeter = "{",
   endDelimeter = "}",
-) {
+): string {
+  if (!text) {
+    return "";
+  }
+
   let startIndex = 0;
   let finalString = "";
 
@@ -11,10 +15,7 @@ export function parse(
     if (text[startIndex] === startDelimeter) {
       let endPoint = startIndex + 1;
 
-      while (
-        endPoint < text.length &&
-        text[endPoint] !== endDelimeter
-      ) {
+      while (endPoint < text.length && text[endPoint] !== endDelimeter) {
         endPoint++;
       }
 

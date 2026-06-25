@@ -2,12 +2,14 @@ export const ZapCell = ({
   name,
   index,
   onClick,
+  onRemove,
   image,
   isLast = false,
 }: {
   name?: string;
   index: number;
   onClick: () => void;
+  onRemove?: (e: React.MouseEvent) => void;
   image?: string;
   isLast?: boolean;
 }) => {
@@ -68,18 +70,39 @@ export const ZapCell = ({
           </span>
         </div>
 
-        {/* chevron */}
-        <svg
-          className="ml-auto shrink-0 text-gray-300"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-        >
-          <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        {/* chevron or remove */}
+        {onRemove ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(e);
+            }}
+            className="ml-auto shrink-0 text-gray-300 hover:text-red-500 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 transition-colors"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        ) : (
+          <svg
+            className="ml-auto shrink-0 text-gray-300"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+          >
+            <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
       </div>
 
       {/* connector line — only shown between steps, never after last */}

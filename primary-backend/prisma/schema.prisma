@@ -25,6 +25,7 @@ model Zap {
   id String @id @default(uuid())
   triggerId String
   userId Int
+  createdAt DateTime @default(now())
   secret String @default("")
   zapRuns ZapRun[]
   trigger Trigger?
@@ -52,14 +53,14 @@ model Action {
 }
 
 model AvailableAction {
-  id String @id @default(uuid())
+  id String @id
   name String
   image String
   actions Action[]
 }
 
 model AvailableTrigger {
-  id String @id @default(uuid())
+  id String @id
   name String
   image String
   triggers Trigger[]

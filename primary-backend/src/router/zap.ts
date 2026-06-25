@@ -105,4 +105,34 @@ router.get("/:zapId", authMiddleware, async (req, res) => {
   return res.json({ zap });
 });
 
+router.delete("/:zapId", authMiddleware, async (req, res) => {
+  // @ts-ignore
+  const id = req.id;
+  const zapId = String(req.params.zapId);
+
+  const zap = await prismaClient.zap.findFirst({
+    where: { id: zapId, userId: id },
+  });
+
+  if (!zap) {
+    return res.status(404).json({ message: "Zap not found" });
+  }
+
+  try {
+    await prismaClient.$transaction(async (tx) => {
+      // Delete dependent records before the zap itself
+      await tx.zapRunOutbox.deleteMany({ where: { zapRun: { zapId } } });
+      await tx.zapRun.deleteMany({ where: { zapId } });
+      await tx.action.deleteMany({ where: { zapId } });
+      await tx.trigger.deleteMany({ where: { zapId } });
+      await tx.zap.delete({ where: { id: zapId } });
+    });
+
+    return res.json({ message: "Zap deleted" });
+  } catch (err) {
+    console.error("Zap deletion failed:", err);
+    return res.status(500).json({ message: "Failed to delete zap" });
+  }
+});
+
 export const zapRouter = router;
