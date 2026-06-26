@@ -4,8 +4,16 @@ import { prismaClient } from "../db/index.js";
 import { ZapCreateSchema } from "../types/index.js";
 import crypto from "crypto";
 import { encrypt } from "../crypto.js";
+import { Queue } from "bullmq";
 
 const router = Router();
+const zapQueue = new Queue("zap-events", {
+  connection: {
+    host: process.env.REDIS_HOST ?? "localhost",
+    port: parseInt(process.env.REDIS_PORT ?? "6379"),
+    password: process.env.REDIS_PASSWORD ?? undefined,
+  },
+});
 
 router.post("/", authMiddleware, async (req, res) => {
   // @ts-ignore
@@ -112,10 +120,28 @@ router.delete("/:zapId", authMiddleware, async (req, res) => {
 
   const zap = await prismaClient.zap.findFirst({
     where: { id: zapId, userId: id },
+    include: { trigger: true },
   });
 
   if (!zap) {
     return res.status(404).json({ message: "Zap not found" });
+  }
+
+  if (zap.trigger?.triggerId === "schedule") {
+    try {
+      const repeatableJobs = await zapQueue.getRepeatableJobs();
+      const job = repeatableJobs.find((j) => j.id === `schedule-${zapId}`);
+      if (job) {
+        await zapQueue.removeRepeatableByKey(job.key);
+        console.log(`Removed repeatable BullMQ job for zap ${zapId}`);
+      } else {
+        console.log(
+          `No repeatable job found for zap ${zapId} — may not have been scheduled yet`,
+        );
+      }
+    } catch (err) {
+      console.error(`Failed to remove BullMQ job for zap ${zapId}:`, err);
+    }
   }
 
   try {
