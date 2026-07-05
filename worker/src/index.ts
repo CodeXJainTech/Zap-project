@@ -21,6 +21,7 @@ async function executeStage(zapRunId: string, stage: number) {
     include: {
       zap: {
         include: {
+          trigger: true,
           actions: {
             include: { type: true },
             orderBy: { sortingOrder: "asc" },
@@ -150,6 +151,39 @@ async function executeStage(zapRunId: string, stage: number) {
       { zapRunId, stage: stage + 1 },
       { attempts: 3, backoff: { type: "exponential", delay: 2000 } },
     );
+  } else {
+    // Self-Replicate if this is a scheduled Zap (Activator Hook architecture)
+    if (zapRunDetails.zap.trigger?.triggerId === "schedule") {
+      const meta = zapRunDetails.zap.trigger.metadata as Record<string, any>;
+      const interval = meta?.interval ?? "every-hour";
+      
+      let nextRun = new Date();
+      switch (interval) {
+        case "every-5min": nextRun = new Date(Date.now() + 5 * 60000); break;
+        case "every-15min": nextRun = new Date(Date.now() + 15 * 60000); break;
+        case "every-hour": nextRun = new Date(Date.now() + 60 * 60000); break;
+        case "every-6hours": nextRun = new Date(Date.now() + 6 * 60 * 60000); break;
+        case "every-day": nextRun = new Date(Date.now() + 24 * 60 * 60000); break;
+        case "every-week": nextRun = new Date(Date.now() + 7 * 24 * 60 * 60000); break;
+        default: nextRun = new Date(Date.now() + 60 * 60000);
+      }
+      
+      console.log(`Self-replicating scheduled zap ${zapRunDetails.zapId} for ${nextRun.toISOString()}`);
+      
+      const newRun = await prismaClient.zapRun.create({
+        data: { 
+          zapId: zapRunDetails.zapId, 
+          metadata: zapRunDetails.metadata ? (zapRunDetails.metadata as any) : { triggeredBy: "schedule" }
+        },
+      });
+      
+      await prismaClient.zapRunOutbox.create({
+        data: {
+          zapRunId: newRun.id,
+          executeAt: nextRun
+        }
+      });
+    }
   }
 
   console.log(`Stage ${stage} complete`);
@@ -159,34 +193,6 @@ const worker = new Worker(
   "zap-events",
   async (job) => {
     console.log(`Job ${job.id} type: ${job.name}`);
-
-    // Scheduled zap
-    if (job.name === "scheduled-zap") {
-      const { zapId } = job.data;
-
-      // Find the most recent ZapRun to copy its metadata
-      const lastRun = await prismaClient.zapRun.findFirst({
-        where: { zapId },
-        orderBy: { id: "desc" },
-      });
-
-      // Create a new ZapRun for this execution, copying metadata from the last run
-      const metadata = lastRun?.metadata
-        ? {
-            ...(lastRun.metadata as object),
-            triggeredBy: "schedule",
-            triggeredAt: new Date().toISOString(),
-          }
-        : { triggeredBy: "schedule", triggeredAt: new Date().toISOString() };
-
-      const run = await prismaClient.zapRun.create({
-        data: { zapId, metadata },
-      });
-
-      console.log(`Created ZapRun ${run.id} for scheduled zap ${zapId}`);
-      await executeStage(run.id, 0);
-      return;
-    }
 
     // Webhook/processor triggered zap
     const { zapRunId, stage } = job.data;

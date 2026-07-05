@@ -16,7 +16,9 @@ async function main() {
 
   while (true) {
     const pendingRows = await client.zapRunOutbox.findMany({
-      where: {},
+      where: {
+        executeAt: { lte: new Date() }
+      },
       take: 10,
     });
 

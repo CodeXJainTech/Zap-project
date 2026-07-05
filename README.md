@@ -18,18 +18,17 @@ graph LR
     HK["Hooks Service\nExpress :3002"]
     PR["Processor"]
     WK["Worker"]
-    SC["Scheduler"]
     DB[("PostgreSQL")]
     RD[("Redis\nBullMQ")]
 
     FE -->|"REST API"| PB
     PB -->|"read/write"| DB
     HK -->|"write ZapRun\n+ Outbox"| DB
-    PR -->|"poll outbox"| DB
+    PR -->|"poll ripe\noutbox rows"| DB
     PR -->|"enqueue jobs"| RD
-    SC -->|"register\nrepeatable jobs"| RD
     RD -->|"dispatch jobs"| WK
     WK -->|"read Zap\n+ Actions"| DB
+    WK -->|"self-replicate\nscheduled runs"| DB
 ```
 
 ---
@@ -79,29 +78,26 @@ next stage"]
 
 ---
 
-### Scheduler Flow
+### Schedule Trigger Flow (Activator Hook / Self-Replicating Outbox)
 
 ```mermaid
 sequenceDiagram
-    participant SC as Scheduler
+    participant HK as Hooks
     participant DB as PostgreSQL
-    participant RD as Redis/BullMQ
+    participant PR as Processor
     participant WK as Worker
 
-    SC->>DB: SELECT Zaps WHERE trigger.triggerId = "schedule"
-    DB-->>SC: [{ zapId, trigger.metadata: { interval: "every-5min" } }]
-    SC->>SC: "every-5min" → "*/5 * * * *"
-    SC->>RD: queue.add("scheduled-zap", { zapId },<br/>{ repeat: { pattern: "*/5 * * * *" }, jobId: "schedule-{zapId}" })
-    Note over SC,RD: Re-syncs every 5 min for new zaps<br/>BullMQ deduplicates by jobId
-
-    loop Every 5 minutes (Redis timer)
-        RD->>WK: job { name: "scheduled-zap", zapId }
-        WK->>DB: Find last ZapRun for zapId
-        WK->>DB: CREATE ZapRun(metadata = lastRun.metadata + triggeredBy: schedule)
-        WK->>DB: SELECT Zap + Actions
-        WK->>WK: executeStage(stage 0)
-        Note over WK: Uses resolvedEmail/resolvedBody<br/>saved from first webhook run
-    end
+    Note over HK,WK: Scheduled Zaps lie dormant until their webhook is hit.
+    HK->>DB: Webhook hit → CREATE ZapRun + ZapRunOutbox(executeAt: now())
+    PR->>DB: Polling: SELECT ZapRunOutbox WHERE executeAt <= now()
+    DB-->>PR: Returns the new ZapRun
+    PR->>WK: Enqueues job in BullMQ
+    WK->>WK: Executes all actions (stages)
+    Note over WK,DB: After all actions complete...
+    WK->>DB: Check if triggerId == "schedule"
+    WK->>DB: Calculate nextRun (e.g. now() + 1 hour)
+    WK->>DB: CREATE new ZapRun + ZapRunOutbox(executeAt: nextRun)
+    Note over DB,WK: The cycle continues indefinitely in the background!
 ```
 
 ---
@@ -163,9 +159,8 @@ erDiagram
 |---------|------|------|
 | `primary-backend` | 3000 | REST API — users, zaps, triggers, actions |
 | `hooks` | 3002 | Receives webhooks, verifies HMAC, writes outbox |
-| `processor` | — | Polls outbox every 3s, pushes to BullMQ |
-| `worker` | — | Executes actions with concurrency 5 |
-| `scheduler` | — | Registers cron repeatable jobs for schedule triggers |
+| `processor` | — | Polls ripe outbox items every 3s, pushes to BullMQ |
+| `worker` | — | Executes actions (concurrency 5) + self-replicates schedules |
 | `frontend` | 3001 | Next.js UI |
 
 ---
@@ -214,8 +209,8 @@ docker compose logs -f worker
 | `JWT_SECRET` | primary-backend | JWT signing secret |
 | `ENCRYPTION_KEY` | primary-backend, worker | 32-char AES-256 key for stored credentials |
 | `DATABASE_URL` | all | PostgreSQL connection string |
-| `REDIS_HOST` | processor, worker, scheduler | Redis hostname |
-| `REDIS_PORT` | processor, worker, scheduler | Redis port (default 6379) |
+| `REDIS_HOST` | processor, worker | Redis hostname |
+| `REDIS_PORT` | processor, worker | Redis port (default 6379) |
 | `EMAIL_USER` | worker | Fallback Gmail address (optional) |
 | `EMAIL_PASS` | worker | Fallback Gmail app password (optional) |
 
@@ -268,5 +263,4 @@ For scheduled zaps — resolved values from the first webhook run are saved back
 ## Adding a New Trigger
 
 1. Add to `primary-backend/src/seed.ts`
-2. If needs config, add to `TRIGGERS_WITH_CONFIG` and add a selector component in the create page
-3. For time-based triggers, add cron pattern in `scheduler/src/index.ts`
+2. If needs config, add to `TRIGGERS_WITH_CONFIG` and add a selector component in the create page

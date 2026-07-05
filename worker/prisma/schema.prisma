@@ -78,4 +78,5 @@ model ZapRunOutbox {
   id String @id @default(uuid())
   zapRunId String @unique
   zapRun ZapRun @relation(fields: [zapRunId], references: [id])
+  executeAt DateTime @default(now())
 }

@@ -34,8 +34,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
       JWT_SECRET: dev-jwt-secret-change-in-production
       ENCRYPTION_KEY: dev-encryption-key-32chars!!
       PORT: 3000
@@ -97,23 +101,6 @@ services:
       ENCRYPTION_KEY: dev-encryption-key-32chars!!
     restart: unless-stopped
 
-
-  scheduler:
-    build:
-      context: ./scheduler
-      dockerfile: Dockerfile
-    container_name: zap-scheduler
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
-      REDIS_HOST: redis
-      REDIS_PORT: "6379"
-    restart: unless-stopped
-    
   frontend:
     build:
       context: ./frontend
